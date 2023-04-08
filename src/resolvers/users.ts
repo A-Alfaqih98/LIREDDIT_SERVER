@@ -1,7 +1,15 @@
 import { RequiredEntityData } from '@mikro-orm/core';
 import { Users } from '../entities/Users';
 import { MyContext } from 'src/types';
-import { Arg, Ctx, Field, Mutation, ObjectType, Resolver } from 'type-graphql';
+import {
+  Arg,
+  Ctx,
+  Field,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+} from 'type-graphql';
 import argon2 from 'argon2';
 
 @ObjectType()
@@ -23,11 +31,22 @@ class UserResopnse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => Users, { nullable: true })
+  async me(@Ctx() { req, em }: MyContext) {
+    console.log(req.session);
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const user = await em.findOne(Users, { id: req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResopnse)
   async register(
     @Arg('username') username: string,
     @Arg('password') password: string,
-    @Ctx() { em }: MyContext,
+    @Ctx() { em, req }: MyContext,
   ) {
     if (username.length <= 2) {
       return {
@@ -71,6 +90,11 @@ export class UserResolver {
         ],
       };
     }
+
+    // store user id session
+    //this will set a cokkiew on the user
+    
+    req.session.userId = user.id;
     return { user };
   }
 
@@ -78,7 +102,7 @@ export class UserResolver {
   async login(
     @Arg('username') username: string,
     @Arg('password') password: string,
-    @Ctx() { em }: MyContext,
+    @Ctx() { em, req }: MyContext,
   ): Promise<UserResopnse> {
     const user = await em.findOne(Users, { username: username });
     if (!user) {
@@ -98,6 +122,9 @@ export class UserResolver {
       };
     }
 
+    req.session.userId = user.id;
+
+    console.log({ req: req.session });
     return {
       user,
     };

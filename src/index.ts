@@ -11,6 +11,14 @@ import { UserResolver } from './resolvers/users';
 import RedisStore from 'connect-redis';
 import session from 'express-session';
 import { createClient } from 'redis';
+import { MyContext } from './types';
+import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core';
+
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
 
 const main = async () => {
   // intilizing orm and update / keep up schema
@@ -22,14 +30,6 @@ const main = async () => {
   // Createing express server
   const app = express();
 
-  // Running apollo server for graphql client
-  const apolloServer = new ApolloServer({
-    schema: await buildSchemaSync({
-      resolvers: [HelloResolver, PostResolver, UserResolver],
-    }),
-    context: () => ({ em: orm.em }),
-  });
-
   // Initialize client.
   let redisClient = createClient();
   redisClient.connect().catch(console.error);
@@ -37,24 +37,41 @@ const main = async () => {
   // Initialize store.
   let redisStore = new RedisStore({
     client: redisClient,
-    prefix: 'myapp:',
+    prefix: 'liredditApp',
+    disableTouch: true,
   });
 
   // Initialize sesssion storage.
   app.use(
     session({
+      name: 'qid',
       store: redisStore,
       resave: false, // required: force lightweight session keep alive (touch)
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+        httpOnly: true,
+        sameSite: 'lax', //csrf
+        secure: __prod__, //cookie only works in https
+      },
       saveUninitialized: false, // recommended: only save session when data exists
-      secret: 'keyboard cat',
+      secret: 'likjvgkuyxcvuuyiviukjb',
     }),
   );
+
+  // Running apollo server for graphql client
+  const apolloServer = new ApolloServer({
+    schema: await buildSchemaSync({
+      resolvers: [HelloResolver, PostResolver, UserResolver],
+    }),
+    plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+  });
 
   await apolloServer.start();
   await apolloServer.applyMiddleware({ app });
 
   app.get('/', (_, res) => {
-    res.status(201).send('Hello World!');
+    res.redirect('/graphql');
     res.end();
   });
 
