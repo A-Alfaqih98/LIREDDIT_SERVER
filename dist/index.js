@@ -52,7 +52,7 @@ const main = async () => {
         schema: await (0, type_graphql_1.buildSchemaSync)({
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, users_1.UserResolver],
         }),
-        plugins: [(0, apollo_server_core_1.ApolloServerPluginLandingPageGraphQLPlayground)()],
+        plugins: [(0, apollo_server_core_1.ApolloServerPluginInlineTrace)()],
         context: ({ req, res }) => ({ em: orm.em, req, res }),
     });
     await apolloServer.start();

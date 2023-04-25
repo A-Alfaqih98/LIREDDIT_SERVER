@@ -1,0 +1,1 @@
+{"version":3,"file":"sleep.js","sourceRoot":"","sources":["../../src/resolvers/sleep.ts"],"names":[],"mappings":";;;AAAO,MAAM,KAAK,GAAG,CAAC,EAAU,EAAE,EAAE,CAClC,IAAI,OAAO,CAAC,CAAC,OAAO,EAAE,OAAO,EAAE,EAAE;IAC/B,UAAU,CAAC,GAAG,EAAE;QACd,OAAO,CAAC,IAAI,CAAC,CAAC;IAChB,CAAC,EAAE,EAAE,CAAC,CAAC;AACT,CAAC,CAAC,CAAC;AALQ,QAAA,KAAK,SAKb"}

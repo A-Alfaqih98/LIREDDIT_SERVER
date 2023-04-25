@@ -13,8 +13,8 @@ import session from 'express-session';
 import { createClient } from 'redis';
 import { MyContext } from './types';
 import {
-  // ApolloServerPluginInlineTrace,
-  ApolloServerPluginLandingPageGraphQLPlayground,
+  ApolloServerPluginInlineTrace,
+  // ApolloServerPluginLandingPageGraphQLPlayground,
 } from 'apollo-server-core';
 import cors from 'cors';
 
@@ -76,8 +76,8 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
     }),
 
-    plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
-    //plugins: [ApolloServerPluginInlineTrace()],
+    // plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+    plugins: [ApolloServerPluginInlineTrace()],
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
   });
 

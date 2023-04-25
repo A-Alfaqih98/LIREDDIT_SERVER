@@ -6,12 +6,12 @@ import { Loaded, RequiredEntityData } from '@mikro-orm/core';
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  posts(@Ctx() { em }: MyContext): Promise<Post[]> {
+  async posts(@Ctx() { em }: MyContext): Promise<Post[]> {
     return em.find(Post, {});
   }
 
   @Query(() => Post, { nullable: true })
-  post(
+  async post(
     @Arg('id') id: number,
     @Ctx() { em }: MyContext,
   ): Promise<Loaded<Post, never> | null> {
