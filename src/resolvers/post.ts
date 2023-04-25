@@ -31,6 +31,7 @@ export class PostResolver {
 
     return post;
   }
+
   @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg('id') id: number,

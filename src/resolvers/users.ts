@@ -1,4 +1,3 @@
-import { RequiredEntityData } from '@mikro-orm/core';
 import { Users } from '../entities/Users';
 import { MyContext } from 'src/types';
 import {
@@ -11,6 +10,8 @@ import {
   Resolver,
 } from 'type-graphql';
 import argon2 from 'argon2';
+import { EntityManager } from '@mikro-orm/postgresql';
+import { COOKIE_NAME } from '../constants';
 
 @ObjectType()
 class FieldError {
@@ -70,12 +71,19 @@ export class UserResolver {
     }
 
     const hashedPassword = await argon2.hash(password);
-    const user = em.create(Users, {
-      username: username,
-      password: hashedPassword,
-    } as RequiredEntityData<Users>);
+    let user;
     try {
-      await em.persistAndFlush(user);
+      const result = await (em as EntityManager)
+        .createQueryBuilder(Users)
+        .getKnexQuery()
+        .insert({
+          username,
+          password: hashedPassword,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning('*');
+      user = result[0];
     } catch (err) {
       if (err.code === '23505') {
         //|| err.detail.includes('already exists')) {
@@ -93,8 +101,8 @@ export class UserResolver {
 
     // store user id session
     //this will set a cokkiew on the user
-    
     req.session.userId = user.id;
+
     return { user };
   }
 
@@ -128,5 +136,21 @@ export class UserResolver {
     return {
       user,
     };
+  }
+
+  @Mutation(() => Boolean)
+  async logout(@Ctx() { req, res }: MyContext): Promise<Boolean> {
+    return new Promise((resolve) => {
+      req.session.destroy((err) => {
+        res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.log(err);
+          resolve(false);
+          return;
+        }
+
+        resolve(true);
+      });
+    });
   }
 }

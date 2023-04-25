@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { MikroORM } from '@mikro-orm/core';
 import express from 'express';
-import { __prod__ } from './constants';
+import { COOKIE_NAME, __prod__ } from './constants';
 import mikroConfig from './mikro-orm.config';
 import { ApolloServer } from 'apollo-server-express';
 import { HelloResolver } from './resolvers/hello';
@@ -12,7 +12,11 @@ import RedisStore from 'connect-redis';
 import session from 'express-session';
 import { createClient } from 'redis';
 import { MyContext } from './types';
-import { ApolloServerPluginLandingPageGraphQLPlayground } from 'apollo-server-core';
+import {
+  // ApolloServerPluginInlineTrace,
+  ApolloServerPluginLandingPageGraphQLPlayground,
+} from 'apollo-server-core';
+import cors from 'cors';
 
 declare module 'express-session' {
   interface SessionData {
@@ -41,10 +45,18 @@ const main = async () => {
     disableTouch: true,
   });
 
+  // Allow cors for the client
+  app.use(
+    cors({
+      origin: ['http://localhost:3000', 'https://studio.apollographql.com'],
+      credentials: true,
+    }),
+  );
+
   // Initialize sesssion storage.
   app.use(
     session({
-      name: 'qid',
+      name: COOKIE_NAME,
       store: redisStore,
       resave: false, // required: force lightweight session keep alive (touch)
       cookie: {
@@ -63,12 +75,19 @@ const main = async () => {
     schema: await buildSchemaSync({
       resolvers: [HelloResolver, PostResolver, UserResolver],
     }),
+
     plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+    //plugins: [ApolloServerPluginInlineTrace()],
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
   });
 
   await apolloServer.start();
-  await apolloServer.applyMiddleware({ app });
+  await apolloServer.applyMiddleware({
+    app,
+    cors: {
+      origin: false,
+    },
+  });
 
   app.get('/', (_, res) => {
     res.redirect('/graphql');
