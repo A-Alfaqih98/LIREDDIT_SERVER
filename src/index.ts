@@ -9,8 +9,8 @@ import { buildSchemaSync } from 'type-graphql';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/users';
 import RedisStore from 'connect-redis';
+import Redis from 'ioredis';
 import session from 'express-session';
-import { createClient } from 'redis';
 import { MyContext } from './types';
 import {
   ApolloServerPluginInlineTrace,
@@ -26,6 +26,7 @@ declare module 'express-session' {
 
 const main = async () => {
   // intilizing orm and update / keep up schema
+
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up;
   const generator = orm.getSchemaGenerator();
@@ -35,12 +36,12 @@ const main = async () => {
   const app = express();
 
   // Initialize client.
-  let redisClient = createClient();
-  redisClient.connect().catch(console.error);
+
+  const redis = new Redis();
 
   // Initialize store.
   let redisStore = new RedisStore({
-    client: redisClient,
+    client: redis,
     prefix: 'liredditApp',
     disableTouch: true,
   });
@@ -78,7 +79,7 @@ const main = async () => {
 
     // plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
     plugins: [ApolloServerPluginInlineTrace()],
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }): MyContext => ({ em: orm.em, req, res, redis }),
   });
 
   await apolloServer.start();

@@ -14,8 +14,8 @@ const type_graphql_1 = require("type-graphql");
 const post_1 = require("./resolvers/post");
 const users_1 = require("./resolvers/users");
 const connect_redis_1 = __importDefault(require("connect-redis"));
+const ioredis_1 = __importDefault(require("ioredis"));
 const express_session_1 = __importDefault(require("express-session"));
-const redis_1 = require("redis");
 const apollo_server_core_1 = require("apollo-server-core");
 const cors_1 = __importDefault(require("cors"));
 const main = async () => {
@@ -24,10 +24,9 @@ const main = async () => {
     const generator = orm.getSchemaGenerator();
     await generator.updateSchema();
     const app = (0, express_1.default)();
-    let redisClient = (0, redis_1.createClient)();
-    redisClient.connect().catch(console.error);
+    const redis = new ioredis_1.default();
     let redisStore = new connect_redis_1.default({
-        client: redisClient,
+        client: redis,
         prefix: 'liredditApp',
         disableTouch: true,
     });
@@ -53,7 +52,7 @@ const main = async () => {
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, users_1.UserResolver],
         }),
         plugins: [(0, apollo_server_core_1.ApolloServerPluginInlineTrace)()],
-        context: ({ req, res }) => ({ em: orm.em, req, res }),
+        context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
     });
     await apolloServer.start();
     await apolloServer.applyMiddleware({

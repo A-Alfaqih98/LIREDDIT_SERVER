@@ -20,6 +20,8 @@ const Users_1 = require("../entities/Users");
 const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
 const constants_1 = require("../constants");
+const validateRigester_1 = require("../utils/validateRigester");
+const sendEmail_1 = require("../utils/sendEmail");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -47,6 +49,15 @@ UserResopnse = __decorate([
     (0, type_graphql_1.ObjectType)()
 ], UserResopnse);
 let UserResolver = class UserResolver {
+    async forgotPassword(email, { em }) {
+        const user = await em.findOne(Users_1.Users, { email });
+        if (!user) {
+            return true;
+        }
+        const token = '987fsdfsd';
+        await (0, sendEmail_1.sendEmail)(email, `<a href="http://localhost3000/change-password/${token}">reset passord</a>`);
+        return true;
+    }
     async me({ req, em }) {
         console.log(req.session);
         if (!req.session.userId) {
@@ -55,35 +66,22 @@ let UserResolver = class UserResolver {
         const user = await em.findOne(Users_1.Users, { id: req.session.userId });
         return user;
     }
-    async register(username, password, { em, req }) {
-        if (username.length <= 2) {
-            return {
-                errors: [
-                    {
-                        field: 'username',
-                        message: 'length must be greater than 2',
-                    },
-                ],
-            };
-        }
-        if (password.length <= 2) {
-            return {
-                errors: [
-                    {
-                        field: 'password',
-                        message: 'length must be greater than 2',
-                    },
-                ],
-            };
-        }
+    async register(username, email, password, { em, req }) {
+        username = username.toLocaleLowerCase();
+        email = email.toLocaleLowerCase();
         const hashedPassword = await argon2_1.default.hash(password);
         let user;
         try {
+            const errors = (0, validateRigester_1.validateRigester)(username, email, password);
+            if (errors) {
+                return { errors };
+            }
             const result = await em
                 .createQueryBuilder(Users_1.Users)
                 .getKnexQuery()
                 .insert({
                 username,
+                email: email,
                 password: hashedPassword,
                 created_at: new Date(),
                 updated_at: new Date(),
@@ -93,24 +91,31 @@ let UserResolver = class UserResolver {
         }
         catch (err) {
             if (err.code === '23505') {
+                return {
+                    errors: [
+                        {
+                            field: 'username',
+                            message: 'username already taken',
+                        },
+                    ],
+                };
             }
-            return {
-                errors: [
-                    {
-                        field: 'username',
-                        message: 'username already taken',
-                    },
-                ],
-            };
         }
         req.session.userId = user.id;
         return { user };
     }
-    async login(username, password, { em, req }) {
-        const user = await em.findOne(Users_1.Users, { username: username });
+    async login(usernameOrEmail, password, { em, req }) {
+        const user = await em.findOne(Users_1.Users, usernameOrEmail.includes('@')
+            ? { email: usernameOrEmail.toLocaleLowerCase() }
+            : { username: usernameOrEmail.toLocaleLowerCase() });
         if (!user) {
             return {
-                errors: [{ field: 'username', message: "that username doesn't exist" }],
+                errors: [
+                    {
+                        field: 'usernameOrEmail',
+                        message: "that username or email doesn't exist",
+                    },
+                ],
             };
         }
         const valid = await argon2_1.default.verify(user.password, password);
@@ -145,6 +150,14 @@ let UserResolver = class UserResolver {
     }
 };
 __decorate([
+    (0, type_graphql_1.Mutation)(() => Boolean),
+    __param(0, (0, type_graphql_1.Arg)('emial')),
+    __param(1, (0, type_graphql_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "forgotPassword", null);
+__decorate([
     (0, type_graphql_1.Query)(() => Users_1.Users, { nullable: true }),
     __param(0, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
@@ -154,15 +167,16 @@ __decorate([
 __decorate([
     (0, type_graphql_1.Mutation)(() => UserResopnse),
     __param(0, (0, type_graphql_1.Arg)('username')),
-    __param(1, (0, type_graphql_1.Arg)('password')),
-    __param(2, (0, type_graphql_1.Ctx)()),
+    __param(1, (0, type_graphql_1.Arg)('email')),
+    __param(2, (0, type_graphql_1.Arg)('password')),
+    __param(3, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [String, String, String, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "register", null);
 __decorate([
     (0, type_graphql_1.Mutation)(() => UserResopnse),
-    __param(0, (0, type_graphql_1.Arg)('username')),
+    __param(0, (0, type_graphql_1.Arg)('usernameOrEmail')),
     __param(1, (0, type_graphql_1.Arg)('password')),
     __param(2, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
