@@ -2,6 +2,7 @@ import { Post } from '../entities/Post';
 import { MyContext } from 'src/types';
 import { Arg, Ctx, Mutation, Query, Resolver } from 'type-graphql';
 import { Loaded, RequiredEntityData } from '@mikro-orm/core';
+import { Socket } from 'net';
 
 @Resolver()
 export class PostResolver {

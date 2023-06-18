@@ -78,7 +78,7 @@ export class UserResolver {
 
   @Mutation(() => Boolean)
   async forgotPassword(
-    @Arg('emial') email: string,
+    @Arg('email') email: string,
     @Ctx() { em, redis }: MyContext,
   ) {
     email = email.toLocaleLowerCase();

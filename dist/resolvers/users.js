@@ -193,7 +193,7 @@ __decorate([
 ], UserResolver.prototype, "changePassword", null);
 __decorate([
     (0, type_graphql_1.Mutation)(() => Boolean),
-    __param(0, (0, type_graphql_1.Arg)('emial')),
+    __param(0, (0, type_graphql_1.Arg)('email')),
     __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
